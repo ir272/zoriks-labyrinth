@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>ZORIK'S LABYRINTH</title>
+<link rel="stylesheet" href="style.css?v=19" />
+</head>
+<body>
+  <!-- 3D canvas is created by Three.js and appended to #game -->
+  <div id="game"></div>
+
+  <!-- In-world HUD ---------------------------------------------------------->
+  <div id="hud" class="hidden">
+    <div id="vignette"></div>
+    <img id="hands" src="assets/sprites/hands.png" alt="" />
+    <div id="crosshair"></div>
+    <div id="clue-sense"><div id="clue-arrow">▲</div></div>
+    <div id="dbg" class="hidden"></div>
+
+    <div id="hud-top">
+      <div id="clue-counter">
+        <span class="hud-label">CLUES</span>
+        <span id="clue-count">0</span><span class="hud-dim">/3</span>
+      </div>
+    </div>
+
+    <div id="hud-topright">
+      <span class="hud-label">TIME</span>
+      <span id="timer">0:00</span>
+    </div>
+
+    <div id="hud-bottom">
+      <div id="battery">
+        <span class="hud-label">FLASHLIGHT</span>
+        <div id="battery-bar"><div id="battery-fill"></div></div>
+      </div>
+    </div>
+
+    <div id="hint" class="hidden">
+      <div id="hint-close" title="Dismiss (X)">✕</div>
+      <div id="hint-title"></div>
+      <div id="hint-body"></div>
+      <div id="hint-cont">press <b>X</b> to continue</div>
+    </div>
+    <div id="toast"></div>
+    <div id="damage-flash"></div>
+    <div id="safe-indicator">SAFE</div>
+  </div>
+
+  <!-- Title screen ---------------------------------------------------------->
+  <section id="screen-title" class="screen">
+    <img class="screen-art" src="assets/ui/title.png" alt="" />
+    <div class="screen-inner">
+      <h1 class="game-title">ZORIK'S<br>LABYRINTH</h1>
+      <p class="tagline">Escape the haunted labyrinth. Find all three clues and get out — before Zorik hunts you down.</p>
+      <button id="btn-start" class="btn">ENTER</button>
+      <ul class="controls">
+        <li><b>WASD</b> move</li>
+        <li><b>Mouse</b> look</li>
+        <li><b>Shift</b> sprint</li>
+        <li><b>F</b> flashlight</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Death screen ---------------------------------------------------------->
+  <section id="screen-dead" class="screen hidden">
+    <img class="screen-art" src="assets/ui/jumpscare.png" alt="" />
+    <img class="blood-splatter" src="assets/ui/blood.png" alt="" />
+    <div class="screen-inner">
+      <h1 class="dead-title">YOU DIED</h1>
+      <p class="dead-sub" id="dead-sub">It found you in the dark.</p>
+      <button id="btn-retry" class="btn">TRY AGAIN</button>
+    </div>
+  </section>
+
+  <!-- Win screen ------------------------------------------------------------>
+  <section id="screen-win" class="screen hidden">
+    <img class="screen-art" src="assets/ui/win.png" alt="" />
+    <div class="screen-inner">
+      <h1 class="win-title">YOU ESCAPED</h1>
+      <p class="win-sub" id="win-sub"></p>
+      <button id="btn-again" class="btn">PLAY AGAIN</button>
+    </div>
+  </section>
+
+  <!-- Loading overlay ------------------------------------------------------->
+  <div id="loading"><span>LOADING…</span></div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/PointerLockControls.js"></script>
+  <script src="audio.js?v=19"></script>
+  <script src="game.js?v=19"></script>
+</body>
+</html>

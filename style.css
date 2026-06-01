@@ -1,0 +1,288 @@
+/* DIM HALLS — HUD, overlays, and the three game-state screens.
+   Art direction: cold greys, sickly green accents, oppressive black, film grain. */
+
+:root {
+  --green: #7d8a6a;        /* sickly institutional green */
+  --green-bright: #aab98a;
+  --rust: #6e4a32;
+  --bone: #d8d4c8;
+  --ink: #0a0b0a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #000; color: var(--bone);
+  overflow: hidden;
+  font-family: "Courier New", ui-monospace, monospace;
+  cursor: default;
+  user-select: none;
+}
+
+#game { position: fixed; inset: 0; }
+#game canvas { display: block; }
+
+.hidden { display: none !important; }
+
+/* ---------- In-world HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+/* Heavy edge darkening so the playfield feels claustrophobic. */
+#vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 48%,
+              transparent 35%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.95) 100%);
+  mix-blend-mode: multiply;
+}
+
+/* First-person hands + flashlight overlay, sits along the bottom, sways via JS. */
+#hands {
+  position: absolute;
+  bottom: -2%; left: 50%;
+  width: 60%; max-width: 900px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: brightness(0.45) contrast(1.05);
+  will-change: transform;
+}
+
+#crosshair {
+  position: absolute; top: 50%; left: 50%;
+  width: 4px; height: 4px; margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(216,212,200,0.35);
+}
+
+/* Clue sense — a directional arrow above the crosshair that rotates toward the
+   nearest uncollected clue (or the exit), brightening as you face it. */
+#clue-sense {
+  position: absolute; top: calc(50% - 56px); left: 50%;
+  transform: translateX(-50%);              /* fixed pivot — JS never touches this */
+  display: flex; flex-direction: column; align-items: center;
+  color: var(--green-bright); pointer-events: none;
+  opacity: 0.55; transition: opacity 0.25s;
+}
+#clue-arrow {
+  font-size: 30px; line-height: 1;
+  transform-origin: 50% 50%;                /* rotate in place — can never orbit */
+  text-shadow: 0 0 10px rgba(170,185,138,0.9), 0 0 2px #000;
+  transition: transform 0.12s linear;
+}
+#clue-sense.exit { color: var(--bone); }
+#clue-sense.exit #clue-arrow { text-shadow: 0 0 12px rgba(216,212,200,0.95), 0 0 2px #000; }
+
+#dbg {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: 1px; color: #6cf; background: rgba(0,0,0,0.6);
+  padding: 3px 8px; pointer-events: none;
+}
+
+.hud-label {
+  font-size: 11px; letter-spacing: 3px;
+  color: var(--green); opacity: 0.85;
+}
+.hud-dim { opacity: 0.5; }
+
+#hud-top { position: absolute; top: 22px; left: 26px; }
+#clue-counter { display: flex; align-items: baseline; gap: 10px; }
+#clue-count { font-size: 30px; color: var(--bone); }
+#hud-top span:not(.hud-label) { text-shadow: 0 0 8px #000; }
+
+#hud-topright { position: absolute; top: 22px; right: 26px; display: flex; align-items: baseline; gap: 10px; }
+#timer { font-size: 30px; color: var(--bone); text-shadow: 0 0 8px #000; }
+
+#hud-bottom { position: absolute; bottom: 22px; left: 26px; }
+#battery { display: flex; flex-direction: column; gap: 6px; }
+#battery-bar {
+  width: 190px; height: 12px;
+  border: 1px solid rgba(125,138,106,0.6);
+  background: rgba(0,0,0,0.5);
+}
+#battery-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--green), var(--green-bright));
+  transition: width 0.2s linear, background 0.3s;
+}
+#battery-fill.low { background: linear-gradient(90deg, #5a2222, #9c3b2e); }
+
+/* Immersive hint panels (intro + contextual tips). Variants: .big (large, centered),
+   .danger (bloody red, for the stalker guide). */
+#hint {
+  position: absolute; left: 50%; bottom: 15%;
+  transform: translateX(-50%) translateY(16px);
+  width: min(640px, 84vw);
+  background: linear-gradient(180deg, rgba(8,10,9,0.9), rgba(8,10,9,0.76));
+  border-top: 2px solid var(--green);
+  box-shadow: 0 0 36px rgba(0,0,0,0.85), inset 0 1px 0 rgba(170,185,138,0.12);
+  padding: 26px 34px; text-align: center;
+  opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;
+}
+#hint.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#hint-close {
+  position: absolute; top: 10px; right: 14px;
+  font-size: 16px; color: #8a948a; cursor: pointer; pointer-events: auto;
+  padding: 2px 8px; transition: color 0.15s;
+}
+#hint-close:hover { color: var(--bone); }
+#hint-title {
+  font-size: 19px; letter-spacing: 6px; color: var(--bone);
+  text-shadow: 0 0 12px rgba(170,185,138,0.4);
+}
+#hint-body {
+  margin-top: 12px; font-size: 14px; line-height: 1.8; letter-spacing: 1px;
+  color: #9aa48a; white-space: pre-line;          /* honor \n line breaks in tip lists */
+}
+
+/* Large, screen-dominating panel (centered) */
+#hint.big {
+  bottom: auto; top: 50%; width: min(780px, 90vw); padding: 40px 50px;
+  transform: translate(-50%, calc(-50% + 16px));
+  border-top-width: 3px;
+}
+#hint.big.show { transform: translate(-50%, -50%); }
+#hint.big #hint-title { font-size: 30px; letter-spacing: 9px; }
+#hint.big #hint-body { font-size: 17px; line-height: 2; margin-top: 20px; text-align: left; }
+
+/* Bloody-red danger variant (the stalker guide) */
+#hint.danger {
+  background: linear-gradient(180deg, rgba(46,6,6,0.95), rgba(16,3,3,0.85));
+  border-top-color: #b3262b;
+  box-shadow: 0 0 70px rgba(150,0,0,0.55), inset 0 1px 0 rgba(255,90,90,0.14);
+}
+#hint.danger #hint-title { color: #ff6a6a; text-shadow: 0 0 20px rgba(190,0,0,0.7); }
+#hint.danger #hint-body { color: #d8a2a2; }
+
+/* Pickup / event toast */
+#toast {
+  position: absolute; top: 38%; left: 50%; transform: translateX(-50%);
+  font-size: 18px; letter-spacing: 2px; color: var(--bone);
+  text-shadow: 0 0 10px #000, 0 0 20px #000;
+  opacity: 0; transition: opacity 0.4s; text-align: center;
+}
+#toast.show { opacity: 1; }
+
+/* Red flash when the stalker lands a hit / catches. */
+#damage-flash {
+  position: absolute; inset: 0; background: rgba(120,0,0,0);
+  transition: background 0.08s;
+}
+#damage-flash.hit { background: rgba(140,0,0,0.45); }
+
+#safe-indicator {
+  position: absolute; top: 64px; right: 26px;
+  font-size: 12px; letter-spacing: 4px; color: var(--green-bright);
+  border: 1px solid rgba(170,185,138,0.5); padding: 5px 12px;
+  opacity: 0; transition: opacity 0.4s;
+}
+#safe-indicator.show { opacity: 0.9; }
+
+/* ---------- Full-screen state screens ---------- */
+.screen {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+.screen-art {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0.5; filter: contrast(1.1) brightness(0.7);
+}
+.screen-inner {
+  position: relative; z-index: 1; text-align: center;
+  padding: 40px; max-width: 640px;
+}
+
+.game-title {
+  font-size: clamp(40px, 8vw, 86px);
+  letter-spacing: 10px; font-weight: 700; line-height: 1.05;
+  color: var(--bone);
+  text-shadow: 0 0 30px #000, 0 4px 40px rgba(0,0,0,0.9);
+  animation: flicker 4s infinite;
+}
+.tagline { margin: 18px 0 34px; color: var(--green-bright); letter-spacing: 2px; }
+
+/* Jumpscare: the screaming face slams in full and the whole screen convulses. */
+#screen-dead .screen-art { opacity: 0.95; filter: contrast(1.2) brightness(1.02); }
+#screen-dead.scare { animation: jumpscare-shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes jumpscare-shake {
+  0%   { transform: scale(1.25) translate(0,0); }
+  8%   { transform: scale(1.22) translate(-22px, 16px) rotate(-1.2deg); }
+  18%  { transform: scale(1.20) translate(20px, -18px) rotate(1.4deg); }
+  28%  { transform: scale(1.16) translate(-18px, -14px) rotate(-1deg); }
+  40%  { transform: scale(1.12) translate(16px, 14px) rotate(0.8deg); }
+  54%  { transform: scale(1.08) translate(-12px, 8px) rotate(-0.6deg); }
+  70%  { transform: scale(1.04) translate(8px, -6px) rotate(0.3deg); }
+  85%  { transform: scale(1.01) translate(-4px, 3px); }
+  100% { transform: scale(1) translate(0,0); }
+}
+
+.dead-title {
+  font-size: clamp(46px, 9vw, 96px); letter-spacing: 10px;
+  color: #b33; text-shadow: 0 0 26px #500;
+  animation: shudder 0.5s 3;
+}
+.dead-sub { margin: 16px 0 32px; color: #c99; letter-spacing: 2px; }
+
+.win-title {
+  font-size: clamp(44px, 8vw, 88px); letter-spacing: 10px; color: var(--bone);
+  text-shadow: 0 0 26px rgba(170,185,138,0.5);
+}
+.win-sub { margin: 16px 0 32px; color: var(--green-bright); letter-spacing: 2px; }
+
+.btn {
+  pointer-events: auto;
+  font-family: inherit; font-size: 18px; letter-spacing: 4px;
+  color: var(--bone); background: transparent;
+  border: 1px solid var(--green);
+  padding: 14px 42px; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn:hover { background: var(--green); color: var(--ink); box-shadow: 0 0 24px rgba(125,138,106,0.5); }
+
+.controls {
+  list-style: none; margin-top: 40px;
+  display: flex; gap: 22px; justify-content: center; flex-wrap: wrap;
+  font-size: 13px; color: #9a9a90; letter-spacing: 1px;
+}
+.controls b { color: var(--bone); }
+.controls .warn { color: var(--rust); }
+
+#loading {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: #000; color: var(--green);
+  letter-spacing: 8px; font-size: 16px;
+}
+
+@keyframes flicker {
+  0%, 92%, 100% { opacity: 1; }
+  93% { opacity: 0.3; } 94% { opacity: 1; }
+  96% { opacity: 0.5; } 97% { opacity: 1; }
+}
+@keyframes shudder {
+  0%,100% { transform: translate(0,0); }
+  25% { transform: translate(-4px, 2px); }
+  75% { transform: translate(4px, -2px); }
+}
+
+.build-tag {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; letter-spacing: 3px; color: #5a6450; opacity: 0.8;
+}
+
+/* Blood splatter over the death screen — sits above the face, below the text. */
+.blood-splatter {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none; z-index: 0;
+  opacity: 0.9; mix-blend-mode: normal;
+  animation: blood-hit 0.5s ease-out both;
+}
+@keyframes blood-hit { 0% { opacity: 0; transform: scale(1.08); } 100% { opacity: 0.9; transform: scale(1); } }
+
+/* "press X to continue" footer — only on persistent (tutorial) panels. */
+#hint-cont { display: none; margin-top: 20px; font-size: 11px; letter-spacing: 3px;
+  color: var(--green-bright); opacity: 0.7; text-align: center; }
+#hint-cont b { color: var(--bone); }
+#hint.persist #hint-cont { display: block; }
+#hint.persist.danger #hint-cont { color: #e0a0a0; }
