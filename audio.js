@@ -14,7 +14,7 @@ const audio = (() => {
   let hbTimer = null;
 
   let sfx = null, sfxReady = false;
-  let menuEl = null, menuReady = false, menu = null, menuPlaying = false;
+  let menuEl = null, menuReady = false, menu = null, menuPlaying = false, wantMenu = false;
   function init() {
     // Prefer a real recorded jumpscare file if present; otherwise fall back to the synth roar.
     sfx = new Audio('assets/audio/jumpscare.mp3');
@@ -31,30 +31,36 @@ const audio = (() => {
   // ---- Main-screen music -------------------------------------------------
   function menuStart() {
     ensure(); if (ctx.state === 'suspended') ctx.resume();
+    wantMenu = true;
     if (menuPlaying) return;
     if (menuReady) {
       try {
-        menuEl.currentTime = 0; menuEl.volume = 0.5;
+        menuEl.muted = false; menuEl.currentTime = 0; menuEl.volume = 0.5;
         const pr = menuEl.play();
-        // If autoplay is blocked (no user gesture yet), DON'T lock menuPlaying — let the next
-        // real interaction retry. Only mark playing once it actually starts.
-        if (pr && pr.then) pr.then(() => { menuPlaying = true; }).catch(() => { menuPlaying = false; });
+        // Guard the async play(): if menuStop ran before it resolved, pause immediately so a
+        // late-resolving play() can't sneak the title music into the game.
+        if (pr && pr.then) pr.then(() => { if (!wantMenu) { try { menuEl.pause(); } catch (e) {} return; } menuPlaying = true; }).catch(() => { menuPlaying = false; });
         else menuPlaying = true;
       } catch (e) { menuPlaying = false; }
       return;
     }
-    // Synth fallback only makes sound once the audio context is allowed to run (post-gesture).
     if (ctx.state === 'running') { menuPlaying = true; synthMenu(); }
   }
-  function menuIsPlaying() { return menuPlaying; }
   function menuStop() {
-    menuPlaying = false;
-    if (menuEl) { try { menuEl.pause(); } catch (e) {} }
+    wantMenu = false; menuPlaying = false;
+    if (menuEl) {
+      // Nuclear: mute = silent regardless of play state, then pause + rewind. Belt-and-suspenders
+      // re-mute on a tick in case a pending play() resolves right after.
+      try { menuEl.muted = true; menuEl.pause(); menuEl.currentTime = 0; } catch (e) {}
+      setTimeout(() => { if (!wantMenu && menuEl) { try { menuEl.muted = true; menuEl.pause(); } catch (e) {} } }, 150);
+    }
     if (menu) {
-      try { menu.g.gain.cancelScheduledValues(ctx.currentTime); menu.g.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.5); } catch (e) {}
-      clearTimeout(menu.timer); const m = menu; menu = null; setTimeout(() => m.stop(), 600);
+      clearTimeout(menu.timer); const m = menu; menu = null;
+      try { m.g.disconnect(); } catch (e) {}   // instantly remove synth from the output graph
+      try { m.stop(); } catch (e) {}            // stop oscillators now
     }
   }
+  function menuIsPlaying() { return menuPlaying; }
   // Synth fallback: a slow A-minor drone/pad with sparse eerie bell notes — ominous, loops forever.
   function synthMenu() {
     ensure(); const t = ctx.currentTime;
@@ -106,6 +112,7 @@ const audio = (() => {
   function start() {
     ensure();
     if (ctx.state === 'suspended') ctx.resume();
+    menuStop();                 // guarantee the title music is off before game audio begins
     running = true;
     master.gain.cancelScheduledValues(ctx.currentTime);
     master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 1.5);

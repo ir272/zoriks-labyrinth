@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 <title>ZORIK'S LABYRINTH</title>
-<link rel="stylesheet" href="style.css?v=20" />
+<link rel="stylesheet" href="style.css?v=25" />
 </head>
 <body>
   <!-- 3D canvas is created by Three.js and appended to #game -->
@@ -56,15 +56,17 @@
     <img class="screen-art" src="assets/ui/title.png" alt="" />
     <div class="screen-inner">
       <h1 class="game-title">ZORIK'S<br>LABYRINTH</h1>
-      <p class="tagline">Escape the haunted labyrinth. Find all three clues and get out — before Zorik hunts you down.</p>
-      <button id="btn-start" class="btn">ENTER</button>
-      <ul class="controls">
-        <li><b>WASD</b> move</li>
-        <li><b>Mouse</b> look</li>
-        <li><b>Shift</b> sprint</li>
-        <li><b>F</b> flashlight</li>
-      </ul>
-      <div id="sound-prompt">♪ click anywhere for sound</div>
+      <div id="click-begin">CLICK TO BEGIN</div>
+      <div id="title-menu" class="hidden">
+        <p class="tagline">Escape the haunted labyrinth. Find all three clues and get out — before Zorik hunts you down.</p>
+        <button id="btn-start" class="btn">ENTER</button>
+        <ul class="controls">
+          <li><b>WASD</b> move</li>
+          <li><b>Mouse</b> look</li>
+          <li><b>Shift</b> sprint</li>
+          <li><b>F</b> flashlight</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -94,7 +96,7 @@
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/PointerLockControls.js"></script>
-  <script src="audio.js?v=20"></script>
-  <script src="game.js?v=20"></script>
+  <script src="audio.js?v=25"></script>
+  <script src="game.js?v=25"></script>
 </body>
 </html>

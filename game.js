@@ -438,7 +438,7 @@ function updateStalker(dt) {
     case 'NOTICE': // DREAD — it creeps toward you, winding up; break its sight to defuse
       stalker.speed = S.patrolSpeed * 0.55;
       stalker.lastKnown = [player.gx, player.gy]; stalker.target = stalker.lastKnown;
-      if (detected) { stalker.noticeT += dt; if (stalker.noticeT >= S.noticeTime) { stalker.state = 'CHASE'; audio.chaseStart(); flashToast('ZORIK HAS YOU — RUN'); tele.chases++; } }
+      if (detected) { stalker.noticeT += dt; if (stalker.noticeT >= S.noticeTime) { stalker.state = 'CHASE'; audio.chaseStart(); tele.chases++; } }
       else { stalker.noticeT -= dt * 1.5; if (stalker.noticeT <= 0) { stalker.state = 'PATROL'; pickPatrolTarget(); } }
       break;
     case 'CHASE': // PANIC
@@ -751,15 +751,20 @@ function initInput() {
     if (e.code === 'Backquote') { dbgOn = !dbgOn; document.getElementById('dbg').classList.toggle('hidden', !dbgOn); }
   });
   document.getElementById('hint-close').addEventListener('pointerdown', dismissHint);
-  // Main-screen music: browsers block audio until a user gesture, so we (1) best-effort attempt on
-  // load (works for returning/trusted visitors) and (2) start on the first interaction otherwise.
-  const kickMenu = () => {
-    if (gameState === 'title' || gameState === 'tutorial') audio.menuStart();
-    const sp = document.getElementById('sound-prompt'); if (sp) sp.classList.add('hidden');
-  };
-  document.addEventListener('pointerdown', kickMenu, { once: true });
-  document.addEventListener('keydown', kickMenu, { once: true });
-  audio.menuStart();                         // best-effort autoplay (no-op if the browser blocks it)
+  // "CLICK TO BEGIN" splash: the first interaction satisfies the browser's audio-gesture rule,
+  // starts the title music, then fades the prompt out and reveals the menu.
+  function kickMenu() {
+    if (gameState !== 'title') return;       // in-game keys/clicks must NEVER (re)start the menu music
+    audio.menuStart();
+    const cb = document.getElementById('click-begin'); if (cb) cb.classList.add('gone');
+    const tm = document.getElementById('title-menu');
+    if (tm) { tm.classList.remove('hidden'); requestAnimationFrame(() => tm.classList.add('show')); }
+    document.removeEventListener('pointerdown', kickMenu);   // drop BOTH so the unused one can't fire mid-game
+    document.removeEventListener('keydown', kickMenu);
+  }
+  document.addEventListener('pointerdown', kickMenu);
+  document.addEventListener('keydown', kickMenu);
+  audio.menuStart();                         // best-effort autoplay for trusted/returning visitors
   document.addEventListener('keyup', (e) => { keys[e.code.toLowerCase()] = false; });
   renderer.domElement.addEventListener('click', () => { if (gameState === 'playing' && !controls.isLocked) controls.lock(); });
   document.getElementById('btn-start').onclick = startGame;
