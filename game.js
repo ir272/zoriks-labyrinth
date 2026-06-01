@@ -751,10 +751,15 @@ function initInput() {
     if (e.code === 'Backquote') { dbgOn = !dbgOn; document.getElementById('dbg').classList.toggle('hidden', !dbgOn); }
   });
   document.getElementById('hint-close').addEventListener('pointerdown', dismissHint);
-  // Main-screen music starts on the first user gesture (autoplay needs one) while on the title.
-  const kickMenu = () => { if (gameState === 'title') audio.menuStart(); };
+  // Main-screen music: browsers block audio until a user gesture, so we (1) best-effort attempt on
+  // load (works for returning/trusted visitors) and (2) start on the first interaction otherwise.
+  const kickMenu = () => {
+    if (gameState === 'title' || gameState === 'tutorial') audio.menuStart();
+    const sp = document.getElementById('sound-prompt'); if (sp) sp.classList.add('hidden');
+  };
   document.addEventListener('pointerdown', kickMenu, { once: true });
   document.addEventListener('keydown', kickMenu, { once: true });
+  audio.menuStart();                         // best-effort autoplay (no-op if the browser blocks it)
   document.addEventListener('keyup', (e) => { keys[e.code.toLowerCase()] = false; });
   renderer.domElement.addEventListener('click', () => { if (gameState === 'playing' && !controls.isLocked) controls.lock(); });
   document.getElementById('btn-start').onclick = startGame;

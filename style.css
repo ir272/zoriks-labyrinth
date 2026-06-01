@@ -286,3 +286,11 @@ html, body {
 #hint-cont b { color: var(--bone); }
 #hint.persist #hint-cont { display: block; }
 #hint.persist.danger #hint-cont { color: #e0a0a0; }
+
+/* "click for sound" prompt on the title screen (browsers block audio autoplay until interaction). */
+#sound-prompt {
+  margin-top: 26px; font-size: 11px; letter-spacing: 3px;
+  color: var(--green-bright); opacity: 0.6;
+  animation: sound-pulse 2.4s ease-in-out infinite;
+}
+@keyframes sound-pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.75; } }

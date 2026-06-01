@@ -31,10 +31,22 @@ const audio = (() => {
   // ---- Main-screen music -------------------------------------------------
   function menuStart() {
     ensure(); if (ctx.state === 'suspended') ctx.resume();
-    if (menuPlaying) return; menuPlaying = true;
-    if (menuReady) { try { menuEl.currentTime = 0; menuEl.volume = 0.5; const pr = menuEl.play(); if (pr) pr.catch(() => synthMenu()); return; } catch (e) { /* fall through */ } }
-    synthMenu();
+    if (menuPlaying) return;
+    if (menuReady) {
+      try {
+        menuEl.currentTime = 0; menuEl.volume = 0.5;
+        const pr = menuEl.play();
+        // If autoplay is blocked (no user gesture yet), DON'T lock menuPlaying — let the next
+        // real interaction retry. Only mark playing once it actually starts.
+        if (pr && pr.then) pr.then(() => { menuPlaying = true; }).catch(() => { menuPlaying = false; });
+        else menuPlaying = true;
+      } catch (e) { menuPlaying = false; }
+      return;
+    }
+    // Synth fallback only makes sound once the audio context is allowed to run (post-gesture).
+    if (ctx.state === 'running') { menuPlaying = true; synthMenu(); }
   }
+  function menuIsPlaying() { return menuPlaying; }
   function menuStop() {
     menuPlaying = false;
     if (menuEl) { try { menuEl.pause(); } catch (e) {} }
@@ -234,5 +246,5 @@ const audio = (() => {
     setTimeout(stop, 1800);
   }
 
-  return { init, start, stop, setTension, footstep, peek, chaseStart, pickup, click, jumpscare, menuStart, menuStop };
+  return { init, start, stop, setTension, footstep, peek, chaseStart, pickup, click, jumpscare, menuStart, menuStop, menuIsPlaying };
 })();
