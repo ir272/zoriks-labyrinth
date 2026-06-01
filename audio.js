@@ -19,12 +19,13 @@ const audio = (() => {
     // Prefer a real recorded jumpscare file if present; otherwise fall back to the synth roar.
     sfx = new Audio('assets/audio/jumpscare.mp3');
     sfx.preload = 'auto'; sfx.volume = 1.0;
-    sfx.addEventListener('canplaythrough', () => { sfxReady = true; });
+    // 'canplaythrough' is unreliable (often never fires) — listen on several readiness events.
+    ['canplaythrough', 'canplay', 'loadeddata'].forEach(ev => sfx.addEventListener(ev, () => { sfxReady = true; }));
     sfx.addEventListener('error', () => { sfxReady = false; });
     // Title-screen music: prefer assets/audio/menu.mp3 (looped); else a synth dark-ambient theme.
     menuEl = new Audio('assets/audio/menu.mp3');
     menuEl.preload = 'auto'; menuEl.loop = true; menuEl.volume = 0.5;
-    menuEl.addEventListener('canplaythrough', () => { menuReady = true; });
+    ['canplaythrough', 'canplay', 'loadeddata'].forEach(ev => menuEl.addEventListener(ev, () => { menuReady = true; }));
     menuEl.addEventListener('error', () => { menuReady = false; });
   }
 
@@ -33,7 +34,7 @@ const audio = (() => {
     ensure(); if (ctx.state === 'suspended') ctx.resume();
     wantMenu = true;
     if (menuPlaying) return;
-    if (menuReady) {
+    if (menuReady || (menuEl && menuEl.readyState >= 2)) {
       try {
         menuEl.muted = false; menuEl.currentTime = 0; menuEl.volume = 0.5;
         const pr = menuEl.play();
@@ -204,8 +205,9 @@ const audio = (() => {
   // Arc: a sharp wet impact → a throaty roar that rises (SHOCK) → sweeps down into a dying,
   // hopeless low groan (DESPAIR). No sawtooth buzz, no robotic distortion.
   function jumpscare() {
-    // Use the recorded SFX if it loaded; otherwise the synth roar below.
-    if (sfx && sfxReady) {
+    // Use the recorded SFX if it's loaded (flag OR live readyState ≥ HAVE_CURRENT_DATA);
+    // otherwise the synth roar below.
+    if (sfx && (sfxReady || sfx.readyState >= 2)) {
       try { sfx.currentTime = 0; sfx.volume = 1.0; const pr = sfx.play(); if (pr) pr.catch(() => synthRoar()); return; }
       catch (e) { /* fall through to synth */ }
     }
